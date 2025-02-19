@@ -11,7 +11,7 @@
           content="{% if page.extra.excerpt %}{{ page.extra.excerpt | safe | truncate(length=160) }}{% else %}{{ config.description }}{% endif %}">
 
     <link rel="stylesheet" href="/main.css">
-    <link rel="stylesheet" href="/fa-all.css">
+    <link rel="stylesheet" href="/fa-all.min.css">
 
     <link rel="apple-touch-icon" sizes="57x57" href="/img/icon/apple-icon-57x57.png">
     <link rel="apple-touch-icon" sizes="60x60" href="/img/icon/apple-icon-60x60.png">
@@ -120,12 +120,11 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if config.extra.mastodon_username %}
+                    {% if config.extra.nostr_npub %}
                     <li>
-                        <a href="https://{{ config.extra.mastodon_host }}/@{{ config.extra.mastodon_username }}">
-                            <span class="fab fa-mastodon fa-lg"></span>
-                            <span class="username">{{ config.extra.mastodon_username }}</span>
-                            <span class="username">@{{ config.extra.mastodon_host }}</span>
+                        <a href="https://primal.net/p/{{ config.extra.nostr_npub }}">
+                            <span class="fa-solid fa-feather"></span>
+                            <span class="username">nostr</span>
                         </a>
                     </li>
                     {% endif %}
