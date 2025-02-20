@@ -31,6 +31,7 @@ highlight_code = true
 title_image = "notmandatory.jpg"
 github_username = "notmandatory"
 twitter_username = "notmandatory"
+nostr_username = "notmandatory"
 nostr_npub = "npub1ke470rdgnxg4gjs9cw3tv0dp690wl68f5xak5smflpsksedadd7qtf8jfm"
 email = "steve@notmandatory.org"
 gpg_fingerprint = "D9FF 9010 BE16 9B64 D3ED  CBF9 8105 A46B 22C2 D051"

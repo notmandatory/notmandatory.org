@@ -80,7 +80,7 @@
                 {% endfor %}
             </ul>
 
-            <p class="rss-subscribe">subscribe <a href="{{ "/rss.xml" }}">via RSS</a></p>
+            <p class="rss-subscribe">subscribe <a href="{{ "/atom.xml" }}">via Atom</a></p>
 
         </div>
         {% endblock content %}
@@ -124,7 +124,7 @@
                     <li>
                         <a href="https://primal.net/p/{{ config.extra.nostr_npub }}">
                             <span class="fa-solid fa-feather"></span>
-                            <span class="username">nostr</span>
+                            <span class="username">{{ config.extra.nostr_username }}</span>
                         </a>
                     </li>
                     {% endif %}
