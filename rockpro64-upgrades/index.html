@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Not Mandatory</title>
+    <meta name="description"
+          content="Steve Myers blog and current contact information.">
+
+    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="/fa-all.min.css">
+
+    <link rel="apple-touch-icon" sizes="57x57" href="/img/icon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/img/icon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/img/icon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/img/icon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/img/icon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/img/icon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/img/icon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/img/icon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/icon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/img/icon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/img/icon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/img/icon/favicon-16x16.png">
+    <link rel="manifest" href="/img/icon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/img/icon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="wrapper">
+
+        <a class="site-title" href="https:&#x2F;&#x2F;notmandatory.org/">
+            <img src="/img/notmandatory.jpg" alt="Not Mandatory">
+        </a>
+
+        <nav class="site-nav">
+            <div class="trigger">
+                
+                <a class="page-link" href="https:&#x2F;&#x2F;notmandatory.org&#x2F;">Home</a>
+                
+                
+                
+                
+                <a class="page-link" href="https:&#x2F;&#x2F;notmandatory.org&#x2F;about&#x2F;">About</a>
+                
+                
+                
+            </div>
+        </nav>
+
+    </div>
+
+</header>
+
+<div class="page-content">
+    <div class="wrapper">
+
+        
+<div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">ROCKPro64 System, Updates</h1>
+    <p class="post-meta">Feb 3, 2021</p>
+  </header>
+
+  <article class="post-content">
+    <p>It's been a few months since I last worked on my ROCKPro64 system so today I did some overdue
+updates. The main impetus for updating was to make sure my system security isn't at risk due to
+the recently announced <code>sudo</code> vulnerability <a href="https://blog.qualys.com/vulnerabilities-research/2021/01/26/cve-2021-3156-heap-based-buffer-overflow-in-sudo-baron-samedit">CVE-2021-3156</a>. Even though I'm the only user on my
+little server it's best to not take any chances.</p>
+<p>The other important update I wanted to do is to bring my <code>bitcoind</code> daemon up to the latest and
+greatest version <a href="https://bitcoin.org/en/release/v0.21.0">bitcoin core 0.21.0</a>.</p>
+<ol>
+<li>
+<p>upgrade OS packages</p>
+<pre data-lang="shell" style="background-color:#2b303b;color:#c0c5ce;" class="language-shell "><code class="language-shell" data-lang="shell"><span>sudo apt update
+</span><span>sudo apt upgrade
+</span></code></pre>
+</li>
+<li>
+<p>verify <code>sudo</code> is patched. Per the <a href="https://blog.qualys.com/vulnerabilities-research/2021/01/26/cve-2021-3156-heap-based-buffer-overflow-in-sudo-baron-samedit">CVE-2021-3156</a> FAQ if your system is vulnerable the below
+command will respond with an error that starts with “sudoedit:”. If your system is patched, it
+will respond with an error that starts with “usage:”</p>
+<pre data-lang="shell" style="background-color:#2b303b;color:#c0c5ce;" class="language-shell "><code class="language-shell" data-lang="shell"><span>sudoedit -s / 
+</span></code></pre>
+</li>
+<li>
+<p>update <code>bitcoin</code> core git repo and checkout the <code>v0.21.0</code> tag</p>
+<pre data-lang="shell" style="background-color:#2b303b;color:#c0c5ce;" class="language-shell "><code class="language-shell" data-lang="shell"><span>cd git/bitcoin ## or where ever you keep your bitcoin core repo clone
+</span><span>git fetch --all
+</span><span>git checkout v0.21.0
+</span></code></pre>
+</li>
+<li>
+<p>re-build <code>bitcoind</code> this time without the wallet, I only need a P2P node</p>
+<pre data-lang="shell" style="background-color:#2b303b;color:#c0c5ce;" class="language-shell "><code class="language-shell" data-lang="shell"><span>./autogen.sh
+</span><span>./configure --without-gui --disable-wallet 
+</span><span>make
+</span><span>strip src/bitcoind
+</span><span>strip src/bitcoin-cli
+</span></code></pre>
+<p>Note: if I cross-compiled this ARM build on my desktop linux system it should go a lot faster,
+I will try that next time</p>
+</li>
+<li>
+<p>install the bitcoin binaries</p>
+<pre data-lang="shell" style="background-color:#2b303b;color:#c0c5ce;" class="language-shell "><code class="language-shell" data-lang="shell"><span>sudo systemctl stop bitcoind
+</span><span>sudo install -sv src/bitcoind src/bitcoin-cli /usr/local/bin
+</span><span>sudo chown bitcoin:bitcoin /usr/local/bin/bitcoin*
+</span></code></pre>
+</li>
+<li>
+<p>verify the new version of bitcoind is installed</p>
+<pre data-lang="shell" style="background-color:#2b303b;color:#c0c5ce;" class="language-shell "><code class="language-shell" data-lang="shell"><span>$ /usr/local/bin/bitcoind --version
+</span><span>Bitcoin Core version v0.21.0
+</span><span>Copyright (C) 2009-2020 The Bitcoin Core developers
+</span><span>
+</span><span>Please contribute if you find Bitcoin Core useful. Visit
+</span><span>&lt;https://bitcoincore.org/&gt; for further information about the software.
+</span><span>The source code is available from &lt;https://github.com/bitcoin/bitcoin&gt;.
+</span><span>
+</span><span>This is experimental software.
+</span><span>Distributed under the MIT software license, see the accompanying file COPYING
+</span><span>or &lt;https://opensource.org/licenses/MIT&gt;
+</span></code></pre>
+</li>
+<li>
+<p>restart bitcoind and verify it started up successfully</p>
+<pre data-lang="shell" style="background-color:#2b303b;color:#c0c5ce;" class="language-shell "><code class="language-shell" data-lang="shell"><span>sudo systemctl start bitcoind
+</span><span>sudo systemctl status bitcoind
+</span><span>sudo tail -f /var/lib/bitcoind/debug.log ## stop tail with control-C
+</span></code></pre>
+</li>
+</ol>
+
+  </article>
+
+</div>
+
+
+    </div>
+</div>
+
+<footer class="site-footer">
+
+    <div class="wrapper">
+
+        <div class="footer-col-wrapper">
+            <div class="footer-col  footer-col-1">
+                <ul class="contact-list">
+                    <li><a href="mailto:steve@notmandatory.org">steve@notmandatory.org</a></li>
+                    
+                    <li>gpg fingerprint: D9FF 9010 BE16 9B64 D3ED  CBF9 8105 A46B 22C2 D051</li>
+                    
+                </ul>
+            </div>
+
+            <div class="footer-col  footer-col-2">
+                <ul class="social-media-list">
+                    
+                    
+                    <li>
+                        <a href="https://github.com/notmandatory">
+                            <span class="fab fa-github fa-lg"></span>
+                            <span class="username">notmandatory</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a href="https://primal.net/p/npub1ke470rdgnxg4gjs9cw3tv0dp690wl68f5xak5smflpsksedadd7qtf8jfm">
+                            <span class="fa-solid fa-feather"></span>
+                            <span class="username">notmandatory</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a href="https://twitter.com/notmandatory">
+                            <span class="fab fa-twitter-square fa-lg"></span>
+                            <span class="username">notmandatory</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a href="&#x2F;steve_notmandatory.asc">
+                            <span class="fas fa-user-secret fa-lg"></span>
+                            <span class="username">gpg public key</span>
+                        </a>
+                    </li>
+                    
+                </ul>
+            </div>
+
+            <div class="footer-col  footer-col-3">
+                <p class="text">Steve Myers blog and current contact information.</p>
+            </div>
+        </div>
+
+    </div>
+
+</footer>
+
+</body>

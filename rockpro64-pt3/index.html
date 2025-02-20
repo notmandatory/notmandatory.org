@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Not Mandatory</title>
+    <meta name="description"
+          content="Steve Myers blog and current contact information.">
+
+    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="/fa-all.min.css">
+
+    <link rel="apple-touch-icon" sizes="57x57" href="/img/icon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/img/icon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/img/icon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/img/icon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/img/icon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/img/icon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/img/icon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/img/icon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/icon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/img/icon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/img/icon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/img/icon/favicon-16x16.png">
+    <link rel="manifest" href="/img/icon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/img/icon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="wrapper">
+
+        <a class="site-title" href="https:&#x2F;&#x2F;notmandatory.org/">
+            <img src="/img/notmandatory.jpg" alt="Not Mandatory">
+        </a>
+
+        <nav class="site-nav">
+            <div class="trigger">
+                
+                <a class="page-link" href="https:&#x2F;&#x2F;notmandatory.org&#x2F;">Home</a>
+                
+                
+                
+                
+                <a class="page-link" href="https:&#x2F;&#x2F;notmandatory.org&#x2F;about&#x2F;">About</a>
+                
+                
+                
+            </div>
+        </nav>
+
+    </div>
+
+</header>
+
+<div class="page-content">
+    <div class="wrapper">
+
+        
+<div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">ROCKPro64 System, Part 3</h1>
+    <p class="post-meta">Apr 6, 2020</p>
+  </header>
+
+  <article class="post-content">
+    <p>In this post I detail the steps needed to enable fan control, install electrs Electrum personal server, and install and
+configure nginx to provide an SSL proxy for the electrs server, to make it easy to use with the Electrum client software.</p>
+<ol>
+<li>
+<p>enable the case fan using Active Thermal Service, follow <a href="https://github.com/tuxd3v/ats">github instruction</a></p>
+</li>
+<li>
+<p>install c language and git (if not already installed)</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo apt install clang git
+</span></code></pre>
+</li>
+<li>
+<p>install rust tools per <a href="https://www.rust-lang.org/tools/install">rust-lang.org/tools/install</a> instructions</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>curl --proto &#39;=https&#39; --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</span><span>source $HOME/.cargo/env
+</span></code></pre>
+</li>
+<li>
+<p>clone and build the <a href="https://github.com/romanz/electrs">electrs</a> project</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>git clone https://github.com/romanz/electrs.git
+</span><span>cd electrs
+</span><span>cargo build --release
+</span></code></pre>
+</li>
+<li>
+<p>add a new <code>electrs</code> system user and make it part of bitcoin group</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo adduser --system --home /var/lib/electrs --ingroup bitcoin electrs
+</span></code></pre>
+</li>
+<li>
+<p>create a new LVM logical volume for electrs data, I allocate 40% of bitcoin volume size which is needed during
+indexing, but can lowered later after the indexes are compacted if I need the space back.</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo lvcreate -n electrs -L 200g rockpro64
+</span></code></pre>
+</li>
+<li>
+<p>format my new electrs logical volume, identify it's UUID and mount it via fstab</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo mkfs.ext4 /dev/rockpro64/electrs
+</span><span>sudo blkid
+</span><span>sudo vi /etc/fstab
+</span></code></pre>
+<p>add line to /etc/fstab:</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>UUID=&lt;THE UUID OF MY NEW LOGICAL PARTITION&gt; /var/lib/electrs ext4 errors=remount-ro 0 1
+</span></code></pre>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo mount -a
+</span><span>sudo chown electrs:bitcoin /var/lib/electrs
+</span><span>sudo chmod -R o-rwx /var/lib/electrs
+</span><span>sudo chmod u+rxw /var/lib/electrs
+</span><span>sudo chmod g+x /var/lib/electrs
+</span></code></pre>
+</li>
+<li>
+<p>copy electrs binary to /var/lib/electrs</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo mkdir /var/lib/electrs/bin
+</span><span>sudo chown electrs:bitcoin /var/lib/electrs/bin
+</span><span>sudo cp target/release/electrs /var/lib/electrs/bin
+</span><span>sudo chown electrs:bitcoin /var/lib/electrs/bin/electrs
+</span></code></pre>
+</li>
+<li>
+<p>create systemd startup file for electrs</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo vi /usr/lib/systemd/system/electrs.service
+</span></code></pre>
+<p>and add below content to file</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>[Unit]
+</span><span>Description=Electrs
+</span><span>After=bitcoind.service
+</span><span>
+</span><span>[Service]
+</span><span>WorkingDirectory=/var/lib/electrs
+</span><span>ExecStart=/var/lib/electrs/bin/electrs -vvv --db-dir ./db --index-batch-size=10 --jsonrpc-import --cookie-file /var/lib/bitcoind/.cookie --daemon-dir /var/lib/bitcoind --electrum-rpc-addr=&quot;127.0.0.1:50001&quot;
+</span><span>User=electrs
+</span><span>Group=bitcoin
+</span><span>Type=simple
+</span><span>KillMode=process
+</span><span>TimeoutSec=60
+</span><span>Restart=always
+</span><span>RestartSec=60
+</span><span>
+</span><span>[Install]
+</span><span>WantedBy=multi-user.target
+</span></code></pre>
+</li>
+<li>
+<p>edit the bitcoind service to enable the rpc server, restart bitcoind</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo vi /usr/lib/systemd/system/bitcoind.service
+</span></code></pre>
+<p>add <code>-server=1</code> to the ExecStart line</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo systemctl daemon-reload
+</span><span>sudo systemctl restart bitcoind
+</span></code></pre>
+</li>
+<li>
+<p>update the permission for bitcoind .cookie file so electrs can use it to connect to the bitcoind rpc api</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo chmod -R g+r /var/lib/bitcoind/
+</span><span>sudo chmod g+x /var/lib/bitcoind
+</span><span>sudo chmod g+x /var/lib/bitcoind/blocks /var/lib/bitcoind/chainstate /var/lib/bitcoind/database
+</span></code></pre>
+</li>
+<li>
+<p>create /run/electrs directory, reload systemd services and start the electrs daemon</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo mkdir /run/electrs
+</span><span>sudo chown electrs:bitcoin /run/electrs
+</span><span>sudo systemctl daemon-reload
+</span><span>sudo syste:qqmctl start electrs
+</span></code></pre>
+<p>At this point electrs will start indexing, this took almost 24 hours on my system.</p>
+</li>
+<li>
+<p>install nginx</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo apt install nginx
+</span></code></pre>
+</li>
+<li>
+<p>create a new nginx cert</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo mkdir /etc/nginx/ssl
+</span><span>sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt
+</span></code></pre>
+</li>
+<li>
+<p>add the below block to the nginx config file</p>
+<p>sudo vi /etc/nginx/nginx.conf</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>stream {
+</span><span>        upstream electrs {
+</span><span>                server 127.0.0.1:50001;
+</span><span>        }
+</span><span>
+</span><span>        server {
+</span><span>                listen 50002 ssl;
+</span><span>                proxy_pass electrs;
+</span><span>
+</span><span>                ssl_certificate /etc/nginx/ssl/nginx.crt;
+</span><span>                ssl_certificate_key /etc/nginx/ssl/nginx.key;
+</span><span>                ssl_session_cache shared:SSL:1m;
+</span><span>                ssl_session_timeout 4h;
+</span><span>                ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
+</span><span>                ssl_prefer_server_ciphers on;
+</span><span>        }
+</span><span>}
+</span></code></pre>
+</li>
+<li>
+<p>unlink the nginx default site in the sites-active directory and restart nginx</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>sudo rm /etc/nginx/sites-enabled/default
+</span><span>sudo systemctl restart nginx
+</span></code></pre>
+</li>
+</ol>
+<p>Done! I now have an electrum server at https://localhost:50001 that I can use as a back end to an electrum client,
+or any other service that uses the electrum server apis to browse the bitcoin block chain.</p>
+
+  </article>
+
+</div>
+
+
+    </div>
+</div>
+
+<footer class="site-footer">
+
+    <div class="wrapper">
+
+        <div class="footer-col-wrapper">
+            <div class="footer-col  footer-col-1">
+                <ul class="contact-list">
+                    <li><a href="mailto:steve@notmandatory.org">steve@notmandatory.org</a></li>
+                    
+                    <li>gpg fingerprint: D9FF 9010 BE16 9B64 D3ED  CBF9 8105 A46B 22C2 D051</li>
+                    
+                </ul>
+            </div>
+
+            <div class="footer-col  footer-col-2">
+                <ul class="social-media-list">
+                    
+                    
+                    <li>
+                        <a href="https://github.com/notmandatory">
+                            <span class="fab fa-github fa-lg"></span>
+                            <span class="username">notmandatory</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a href="https://primal.net/p/npub1ke470rdgnxg4gjs9cw3tv0dp690wl68f5xak5smflpsksedadd7qtf8jfm">
+                            <span class="fa-solid fa-feather"></span>
+                            <span class="username">notmandatory</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a href="https://twitter.com/notmandatory">
+                            <span class="fab fa-twitter-square fa-lg"></span>
+                            <span class="username">notmandatory</span>
+                        </a>
+                    </li>
+                    
+                    
+                    <li>
+                        <a href="&#x2F;steve_notmandatory.asc">
+                            <span class="fas fa-user-secret fa-lg"></span>
+                            <span class="username">gpg public key</span>
+                        </a>
+                    </li>
+                    
+                </ul>
+            </div>
+
+            <div class="footer-col  footer-col-3">
+                <p class="text">Steve Myers blog and current contact information.</p>
+            </div>
+        </div>
+
+    </div>
+
+</footer>
+
+</body>
